@@ -1,0 +1,25 @@
+{
+  "name": "zip-analyzer",
+  "version": "0.0.1",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "ts-node test/test.ts"
+  },
+  "keywords": [
+    "zip"
+  ],
+  "author": "shenX-2021",
+  "devDependencies": {
+    "@eslint/js": "^9.5.0",
+    "@types/eslint__js": "^8.42.3",
+    "@types/node": "^20.14.8",
+    "eslint": "^8.57.0",
+    "eslint-config-prettier": "^9.1.0",
+    "globals": "^15.6.0",
+    "prettier": "3.3.2",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.5.2",
+    "typescript-eslint": "^7.13.1"
+  }
+}
