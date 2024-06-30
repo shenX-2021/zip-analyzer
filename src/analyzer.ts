@@ -63,7 +63,9 @@ export interface LocalFileHeader {
 
 export class Analyzer {
   private centralDirEndRecord: CentralDirEndRecord;
-  private centralDirHeaderList: CentralDirHeader[];
+  public centralDirHeaderList: CentralDirHeader[];
+
+  public done = false;
 
   async analysis(filePath: string) {
     const buffer = await fsp.readFile(filePath);
@@ -71,7 +73,7 @@ export class Analyzer {
     this.centralDirEndRecord = this.getCentralDirEndRecord(buffer);
     this.centralDirHeaderList = this.getCentralDirHeaderList(buffer);
 
-    console.log(this.centralDirHeaderList);
+    this.done = true;
   }
 
   /**
@@ -131,16 +133,15 @@ export class Analyzer {
    */
   private getCentralDirHeaderList(originalBuffer: Buffer): CentralDirHeader[] {
     const locator = Buffer.from([0x50, 0x4b, 0x01, 0x02]);
-    const { centralDirOffset, centralDirSize, centralDirCount } =
-      this.centralDirEndRecord;
+    const {
+      centralDirOffset,
+      centralDirSize,
+      centralDirCount,
+    } = this.centralDirEndRecord;
     const buffer = originalBuffer.subarray(
       centralDirOffset,
       centralDirOffset + centralDirSize,
     );
-    // const idx = originalBuffer.lastIndexOf(locator);
-    // if (idx < 0) {
-    //   throw new Error(`can't find signature of end of central record.`);
-    // }
 
     let offset = 0;
     let prevOffset = 0;
@@ -165,13 +166,13 @@ export class Analyzer {
         .readUInt16LE();
       const lastModTime = buffer.subarray(offset, (offset += 2)).readUInt16LE();
       const lastModDate = buffer.subarray(offset, (offset += 2)).readUInt16LE();
-      const crc32 = buffer.subarray(offset, (offset += 4)).readUInt16LE();
+      const crc32 = buffer.subarray(offset, (offset += 4)).readUInt32LE();
       const compressedSize = buffer
         .subarray(offset, (offset += 4))
-        .readUInt16LE();
+        .readUInt32LE();
       const uncompressedSize = buffer
         .subarray(offset, (offset += 4))
-        .readUInt16LE();
+        .readUInt32LE();
       const filenameLength = buffer
         .subarray(offset, (offset += 2))
         .readUInt16LE();
@@ -186,7 +187,7 @@ export class Analyzer {
         .readUInt16LE();
       const internalFileAttr = buffer.subarray(offset, (offset += 2));
       const externalFileAttr = buffer.subarray(offset, (offset += 4));
-      const lfhOffset = buffer.subarray(offset, (offset += 4)).readUInt16LE();
+      const lfhOffset = buffer.subarray(offset, (offset += 4)).readUInt32LE();
       const filename = buffer
         .subarray(offset, (offset += filenameLength))
         .toString();
@@ -197,7 +198,6 @@ export class Analyzer {
         .subarray(offset, (offset += fileCommentLength))
         .toString();
 
-      console.log(filename, centralDirHeaderList.length, offset, lfhOffset);
       centralDirHeaderList.push({
         signature,
         compressedVersion,
@@ -253,13 +253,13 @@ export class Analyzer {
       .readUInt16LE();
     const lastModTime = buffer.subarray(offset, (offset += 2)).readUInt16LE();
     const lastModDate = buffer.subarray(offset, (offset += 2)).readUInt16LE();
-    const crc32 = buffer.subarray(offset, (offset += 4)).readUInt16LE();
+    const crc32 = buffer.subarray(offset, (offset += 4)).readUInt32LE();
     const compressedSize = buffer
       .subarray(offset, (offset += 4))
-      .readUInt16LE();
+      .readUInt32LE();
     const uncompressedSize = buffer
       .subarray(offset, (offset += 4))
-      .readUInt16LE();
+      .readUInt32LE();
     const filenameLength = buffer
       .subarray(offset, (offset += 2))
       .readUInt16LE();

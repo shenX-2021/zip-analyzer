@@ -1,3 +1,5 @@
+import { bufferToString } from './lib/index';
+
 export interface ExtraFieldBase {
   headerId: number;
   dataSize: number;
@@ -20,6 +22,7 @@ export const extraFieldHandlerMap: {
 } = {
   0x0001: formatExtraFieldZip64,
   0xa220: formatExtraFieldMOPGH,
+  0x000a: formatExtraFieldNTFS,
 };
 
 /**
@@ -53,7 +56,9 @@ export function formatExtraField(buffer: Buffer): ExtraFieldBase {
 
   if (!func) {
     throw new Error(
-      `not implemented handler(header id: ${toString(buffer.subarray(0, 2))}), please implemment it yourself`,
+      `not implemented handler(header id: ${bufferToString(
+        buffer.subarray(0, 2),
+      )}), please implemment it yourself`,
     );
   }
   const extraField = func(buffer);
@@ -109,12 +114,36 @@ export function formatExtraFieldMOPGH(buffer: Buffer): ExtraFieldBase {
   } as ExtraFieldBase;
 }
 
-function toString(buffer: Buffer) {
-  let str = '';
-
-  for (let i = 0; i < buffer.length; i++) {
-    str += `${buffer.subarray(i, i + 1).toString('hex')} `;
+interface NTFSAttr {
+  size: number;
+  data: Buffer;
+}
+/**
+ * format different extra field data - NTFS
+ */
+export function formatExtraFieldNTFS(buffer: Buffer): ExtraFieldBase {
+  let offset = 0;
+  const headerId = buffer.subarray(offset, (offset += 2)).readUInt16LE();
+  if (headerId !== 0x000a) {
+    throw new Error(
+      `error header id ${headerId}, header id of \`NTFS\` is ${0x000a}`,
+    );
+  }
+  const dataSize = buffer.subarray(offset, (offset += 2)).readUInt16LE();
+  const reserved = buffer.subarray(offset, (offset += 4));
+  const attrList: NTFSAttr[] = [];
+  while (offset < dataSize + 4) {
+    const size = buffer.subarray(offset, (offset += 2)).readUInt16LE();
+    attrList.push({
+      size,
+      data: buffer.subarray(offset, (offset += size)),
+    });
   }
 
-  return `<Buffer ${str.trim()}>`;
+  return {
+    headerId,
+    dataSize,
+    reserved,
+    attrList,
+  } as ExtraFieldBase;
 }
