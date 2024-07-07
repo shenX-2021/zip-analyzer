@@ -133,11 +133,8 @@ export class Analyzer {
    */
   private getCentralDirHeaderList(originalBuffer: Buffer): CentralDirHeader[] {
     const locator = Buffer.from([0x50, 0x4b, 0x01, 0x02]);
-    const {
-      centralDirOffset,
-      centralDirSize,
-      centralDirCount,
-    } = this.centralDirEndRecord;
+    const { centralDirOffset, centralDirSize, centralDirCount } =
+      this.centralDirEndRecord;
     const buffer = originalBuffer.subarray(
       centralDirOffset,
       centralDirOffset + centralDirSize,
@@ -197,6 +194,13 @@ export class Analyzer {
       const fileComment = buffer
         .subarray(offset, (offset += fileCommentLength))
         .toString();
+      const lfh = this.getLFH(originalBuffer, lfhOffset, compressedSize);
+
+      if (lfh.data.length !== compressedSize) {
+        throw new Error(
+          `data size(${lfh.data.length}) is different from compressed size(${compressedSize})`,
+        );
+      }
 
       centralDirHeaderList.push({
         signature,
@@ -219,7 +223,7 @@ export class Analyzer {
         internalFileAttr,
         externalFileAttr,
         lfhOffset,
-        lfh: this.getLFH(originalBuffer, lfhOffset),
+        lfh,
         offset: centralDirOffset + prevOffset,
         size: offset - prevOffset,
       });
@@ -232,7 +236,11 @@ export class Analyzer {
   /**
    * get local file header
    */
-  private getLFH(originalBuffer: Buffer, lfhOffset: number): LocalFileHeader {
+  private getLFH(
+    originalBuffer: Buffer,
+    lfhOffset: number,
+    dataSize: number,
+  ): LocalFileHeader {
     const buffer = originalBuffer.subarray(lfhOffset);
     const locator = Buffer.from([0x50, 0x4b, 0x03, 0x04]);
 
@@ -272,12 +280,7 @@ export class Analyzer {
     const extraFieldList = getExtraFieldList(
       buffer.subarray(offset, (offset += extraFieldLength)),
     );
-    const data = buffer.subarray(offset, (offset += compressedSize));
-    if (data.length !== compressedSize) {
-      throw new Error(
-        `data size(${data.length}) is different from compressed size(${compressedSize})`,
-      );
-    }
+    const data = buffer.subarray(offset, (offset += dataSize));
 
     return {
       signature,
